@@ -13,9 +13,12 @@ func (app *applicaton) routes() http.Handler {
 	// register middleware
 	router.Use(middleware.Recoverer)
 
+	// static assets
+	fileServer := http.FileServer(http.Dir("./static/"))
+	router.Handle("/static/*", http.StripPrefix("/static", fileServer))
+
 	// register routes
 	router.Get("/", app.Home)
-	// static assets
 
 	// chi.Mux satisfies http.Handler type
 	return router
