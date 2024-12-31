@@ -3,23 +3,24 @@ package main
 import (
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"github.com/julienschmidt/httprouter" // router
+	"github.com/justinas/alice"
 )
 
-func (app *applicaton) routes() http.Handler {
-	router := chi.NewRouter()
-
-	// register middleware
-	router.Use(middleware.Recoverer)
+func (app *application) routes() http.Handler {
+	router := httprouter.New()
 
 	// static assets
 	fileServer := http.FileServer(http.Dir("./static/"))
-	router.Handle("/static/*", http.StripPrefix("/static", fileServer))
+	router.Handler(http.MethodGet, "/static/*filepath", http.StripPrefix("/static", fileServer))
 
 	// register routes
-	router.Get("/", app.Home)
+	router.Handler(http.MethodGet, "/", http.HandlerFunc(app.Home))
 
 	// chi.Mux satisfies http.Handler type
-	return router
+	// Chain middleware
+	standard := alice.New(app.recoverPanic, app.logRequest)
+
+	// Return the 'standard' middleware chain
+	return standard.Then(router)
 }

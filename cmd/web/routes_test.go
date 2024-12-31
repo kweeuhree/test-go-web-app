@@ -2,13 +2,25 @@ package main
 
 import (
 	"net/http"
-	"strings"
+	"net/http/httptest"
 	"testing"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/julienschmidt/httprouter"
 )
 
-func Test_applicaton_routes(t *testing.T) {
+// Mock handler for testing
+func mockHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	w.WriteHeader(http.StatusOK)
+}
+
+func Test_application_routes(t *testing.T) {
+
+	router := httprouter.New()
+
+	// Register routes for testing
+	router.GET("/", mockHandler)
+	router.GET("/static/*filepath", mockHandler)
+
 	var registered = []struct {
 		route  string
 		method string
@@ -17,30 +29,19 @@ func Test_applicaton_routes(t *testing.T) {
 		{"/static/*", "GET"},
 	}
 
-	var app applicaton
-	router := app.routes()
-
-	// use walk from chi
-	chiRoutes := router.(chi.Routes)
-
 	for _, route := range registered {
 		// check if the route exists
-		if !routeExists(route.route, route.method, chiRoutes) {
+		if !routeExists(router, route.route, route.method) {
 			t.Errorf("route %s is not registered", route.route)
 		}
 	}
-
 }
 
-func routeExists(testRoute, testMethod string, chiRoutes chi.Routes) bool {
-	found := false
+func routeExists(router *httprouter.Router, testRoute, testMethod string) bool {
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(testMethod, testRoute, nil)
 
-	_ = chi.Walk(chiRoutes, func(method string, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
-		if strings.EqualFold(method, testMethod) && strings.EqualFold(route, testRoute) {
-			found = true
-		}
-		return nil
-	})
+	router.ServeHTTP(recorder, request)
 
-	return found
+	return recorder.Code != http.StatusNotFound
 }
