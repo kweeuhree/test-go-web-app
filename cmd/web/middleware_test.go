@@ -129,8 +129,8 @@ func Test_recoverPanic(t *testing.T) {
 			// Serve the HTTP request
 			middleware.ServeHTTP(resp, req)
 
-			if resp.Result().StatusCode != entry.expectedStatus {
-				t.Errorf("Expected %d, got '%d'", entry.expectedStatus, resp.Result().StatusCode)
+			if resp.Code != entry.expectedStatus {
+				t.Errorf("Expected %d, got '%d'", entry.expectedStatus, resp.Code)
 			}
 			// Check if the "Connection" header is set to "close"
 			if entry.panicOccurred {
